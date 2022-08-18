@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 const bodyParser = require('body-parser')
 require('dotenv').config()
 
-const PORT = 8080
+const PORT = process.env.PORT || 8080
 
 mongoose
   .connect(process.env.MONGO_URI, {
@@ -33,5 +33,7 @@ app.get('/ping', (req, res) => {
 app.use('/users', require('./routes/users'))
 
 app.listen(PORT, () => {
-  console.log('Server started listening on PORT : ' + PORT)
+  console.log(`Server running on port ${PORT}`)
 })
+
+//frontend: React-Login-Form
