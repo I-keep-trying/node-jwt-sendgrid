@@ -135,7 +135,7 @@ exports.Login = async (req, res) => {
     user.accessToken = token
 
     await user.save()
-    console.log('user: ', user)
+   
     //Success
     return res.send({
       success: true,
