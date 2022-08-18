@@ -21,6 +21,20 @@ const app = express()
 
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
+
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy', 'geolocation=(), interest-cohort=()')
+  res.setHeader(
+    'Strict-Transport-Security',
+    'max-age=31536000;includeSubDomains'
+  )
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('Referrer-Policy', 'strict-origin')
+  res.setHeader('Cache-Control', 'max-age=31536000')
+  next()
+})
+
 app.use(express.static('build'))
 
 app.get('/ping', (req, res) => {
