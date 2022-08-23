@@ -5,6 +5,9 @@ const { v4: uuid } = require('uuid')
 const { sendEmail } = require('./helpers/mailer')
 const User = require('./user.model')
 const { generateJwt } = require('./helpers/generateJwt')
+const cookieParser = require('cookie-parser')
+const jwt = require('jsonwebtoken')
+require('dotenv').config()
 
 const nanoid = customAlphabet(
   '1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
@@ -15,12 +18,12 @@ const userSchema = Joi.object().keys({
   name: Joi.string(),
   email: Joi.string().email({ minDomainSegments: 2 }),
   password: Joi.string().required().min(8),
-  // confirmPassword: Joi.string().valid(Joi.ref('password')).required(),
 })
 
 exports.Signup = async (req, res) => {
   try {
     const result = userSchema.validate(req.body)
+
     if (result.error) {
       console.log(result.error.message)
       return res.json({
@@ -34,7 +37,7 @@ exports.Signup = async (req, res) => {
     var user = await User.findOne({
       email: result.value.email,
     })
-
+    console.log('User.findOne', user)
     if (user) {
       return res.json({
         error: true,
@@ -47,11 +50,8 @@ exports.Signup = async (req, res) => {
     const id = uuid()
     result.value.userId = id
 
-    //remove the confirmPassword field from the result as we dont need to save this in the db.
-    // delete result.value.confirmPassword
     result.value.password = hash
 
-    // let code = Math.floor(100000 + Math.random() * 900000) //Generate random 6 digit code.
     const code = nanoid()
     let expiry = Date.now() + 60 * 1000 * 15 //Set expiry 15 mins ahead from now
 
@@ -112,7 +112,12 @@ exports.Login = async (req, res) => {
         message: 'You must verify your email to activate your account',
       })
     }
-
+    console.log(
+      'comparePasswords: password',
+      password,
+      ', user.password ',
+      user.password
+    )
     //3. Verify the password is valid
     const isValid = await User.comparePasswords(password, user.password)
 
@@ -131,19 +136,25 @@ exports.Login = async (req, res) => {
         message: "Couldn't create access token. Please try again later",
       })
     }
+    /* Instead of saving token in mongodb, use cookies
+   // user.accessToken = token
 
-    user.accessToken = token
+  //  await user.save()
+    */
 
-    await user.save()
-   
     //Success
-    return res.send({
-      success: true,
-      message: 'User logged in successfully',
-      accessToken: token,
-      id: user.userId,
-      name: user.name,
-    })
+    return res
+      .cookie('access_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'development',
+      })
+      .send({
+        success: true,
+        message: 'User logged in successfully',
+        //     accessToken: token,
+        id: user.userId,
+        name: user.name,
+      })
   } catch (error) {
     console.error('Login error', error)
     return res.status(500).json({
@@ -154,6 +165,7 @@ exports.Login = async (req, res) => {
 }
 
 exports.Activate = async (req, res) => {
+  console.log('Activate account', req.body)
   try {
     const { email, code } = req.body
     if (!email || !code) {
@@ -204,11 +216,27 @@ exports.Activate = async (req, res) => {
 }
 
 exports.Logout = async (req, res) => {
+  const token = req.headers['cookie']
+  if (!token) {
+    return res.json({ error: true, message: 'Unauthorized to logout' })
+  }
+  const cookie = token.split('=')[1]
+
+  const decoded = jwt.verify(cookie, process.env.JWT_SECRET)
+
+  const user = await User.findOne({
+    email: decoded.email,
+  })
+
   try {
-    let user = await User.findOne({ userId: req.params.id })
-    user.accessToken = ''
-    await user.save()
-    return res.send({ success: true, message: 'User Logged out' })
+    if (user) {
+      console.log('user found')
+      return res
+        .clearCookie('access_token')
+        .send({ success: true, message: 'User Logged out' })
+    } else {
+      return res.send({ success: false, message: 'Logout error' })
+    }
   } catch (error) {
     console.error('user-logout-error', error)
     return res.stat(500).json({
