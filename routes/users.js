@@ -11,5 +11,6 @@ router.post('/login', cleanBody, AuthController.Login)
 router.patch('/activate', cleanBody, AuthController.Activate)
 router.get('/logout', AuthController.Logout)
 router.patch('/forgot', cleanBody, AuthController.ForgotPassword)
+router.patch('/role', cleanBody, AuthController.UpdateUser)
 
 module.exports = router

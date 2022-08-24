@@ -25,7 +25,6 @@ exports.Signup = async (req, res) => {
     const result = userSchema.validate(req.body)
 
     if (result.error) {
-      console.log(result.error.message)
       return res.json({
         error: true,
         status: 400,
@@ -37,7 +36,6 @@ exports.Signup = async (req, res) => {
     var user = await User.findOne({
       email: result.value.email,
     })
-    console.log('User.findOne', user)
     if (user) {
       return res.json({
         error: true,
@@ -69,7 +67,6 @@ exports.Signup = async (req, res) => {
 
     const newUser = new User(result.value)
     await newUser.save()
-
     return res.status(200).json({
       success: true,
       message: 'Registration Success',
@@ -112,12 +109,7 @@ exports.Login = async (req, res) => {
         message: 'You must verify your email to activate your account',
       })
     }
-    console.log(
-      'comparePasswords: password',
-      password,
-      ', user.password ',
-      user.password
-    )
+
     //3. Verify the password is valid
     const isValid = await User.comparePasswords(password, user.password)
 
@@ -151,7 +143,7 @@ exports.Login = async (req, res) => {
       .send({
         success: true,
         message: 'User logged in successfully',
-        //     accessToken: token,
+        role: user.role,
         id: user.userId,
         name: user.name,
       })
@@ -165,7 +157,6 @@ exports.Login = async (req, res) => {
 }
 
 exports.Activate = async (req, res) => {
-  console.log('Activate account', req.body)
   try {
     const { email, code } = req.body
     if (!email || !code) {
@@ -198,7 +189,7 @@ exports.Activate = async (req, res) => {
       user.emailToken = ''
       user.emailTokenExpires = null
       user.active = true
-
+      user.role = 'user'
       await user.save()
 
       return res.status(200).json({
@@ -230,7 +221,6 @@ exports.Logout = async (req, res) => {
 
   try {
     if (user) {
-      console.log('user found')
       return res
         .clearCookie('access_token')
         .send({ success: true, message: 'User Logged out' })
@@ -301,7 +291,6 @@ exports.ResetPw = async (req, res) => {
   try {
     const result = userSchema.validate(req.body)
     if (result.error) {
-      console.log(result.error.message)
       return res.json({
         error: true,
         status: 400,
@@ -326,11 +315,8 @@ exports.ResetPw = async (req, res) => {
     const id = uuid()
     result.value.userId = id
 
-    //remove the confirmPassword field from the result as we dont need to save this in the db.
-    // delete result.value.confirmPassword
     result.value.password = hash
 
-    //  let code = Math.floor(100000 + Math.random() * 900000) //Generate random 6 digit code.
     const code = nanoid()
     let expiry = Date.now() + 60 * 1000 * 15 //Set expiry 15 mins ahead from now
 
@@ -358,6 +344,29 @@ exports.ResetPw = async (req, res) => {
     return res.status(500).json({
       error: true,
       message: 'Cannot Reset password',
+    })
+  }
+}
+
+exports.UpdateUser = async (req, res) => {
+  console.log('Update user: ', req.body)
+  const role = req.body
+  var user = await User.findOne({
+    email: req.body.email,
+  })
+
+  if (!user) {
+    return res.json({
+      error: true,
+      message: 'Cannot update user. Email not found.',
+    })
+  } else {
+    user.role = 'admin'
+    await user.save()
+
+    return res.status(200).json({
+      success: true,
+      message: 'User role successfully updated.',
     })
   }
 }

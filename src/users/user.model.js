@@ -10,6 +10,7 @@ const userSchema = new Schema(
     email: { type: String, required: true, unique: true },
     active: { type: Boolean, default: false },
     password: { type: String, required: true },
+    role: {type: String, default: 'user'},
     resetPasswordToken: { type: String, default: null },
     resetPasswordExpires: { type: Date, default: null },
     emailToken: { type: String, default: null },

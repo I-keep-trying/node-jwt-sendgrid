@@ -6,13 +6,13 @@ async function sendEmail(email, code) {
     const smtpEndpoint = 'smtp.sendgrid.net'
     const port = 465
     const senderAddress = `ANDREA <dre.crego@gmail.com>`
-    var toAddress = email
+    const toAddress = email
     const smtpUsername = 'apikey'
     const smtpPassword = process.env.SG_APIKEY
-    var subject = 'Verify your email'
+    const subject = 'Verify your email'
 
     // The body of the email for recipients
-    var body_html = `<!DOCTYPE> 
+    const body_html = `<!DOCTYPE> 
     <html>
       <body>
         <p>Your authentication code is : </p> <b>${code}</b>
@@ -31,14 +31,14 @@ async function sendEmail(email, code) {
     })
 
     // Specify the fields in the email.
-    let mailOptions = {
+    const mailOptions = {
       from: senderAddress,
       to: toAddress,
       subject: subject,
       html: body_html,
     }
 
-    let info = await transporter.sendMail(mailOptions)
+    const info = await transporter.sendMail(mailOptions)
 
     return { error: false }
   } catch (error) {
