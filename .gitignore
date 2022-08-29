@@ -3,3 +3,6 @@ node_modules
 package-lock.json
 .rest
 build1
+build1.1
+/src/users/helpers/newMailer.js
+response.js

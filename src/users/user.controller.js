@@ -23,7 +23,7 @@ const userSchema = Joi.object().keys({
 exports.Signup = async (req, res) => {
   try {
     const result = userSchema.validate(req.body)
-
+    console.log('result', result)
     if (result.error) {
       return res.json({
         error: true,
@@ -33,16 +33,17 @@ exports.Signup = async (req, res) => {
     }
 
     //Check if the email has been already registered.
-    var user = await User.findOne({
+    const user = await User.findOne({
       email: result.value.email,
     })
+
     if (user) {
       return res.json({
         error: true,
         message: 'Email is already in use',
       })
     }
-
+    //console.log('user', user) // user === null at this point
     const hash = await User.hashPassword(result.value.password)
 
     const id = uuid()
@@ -50,10 +51,18 @@ exports.Signup = async (req, res) => {
 
     result.value.password = hash
 
-    const code = nanoid()
-    let expiry = Date.now() + 60 * 1000 * 15 //Set expiry 15 mins ahead from now
+    //  const code = nanoid()
+    //  let expiry = Date.now() + 60 * 1000 * 15 //Set expiry 15 mins ahead from now
 
-    const sendCode = await sendEmail(result.value.email, code)
+    const code = await jwt.sign(result.value.email, process.env.JWT_SECRET)
+    console.log('jwt: ', code)
+    const activationUrl = `http://localhost:8080/users/activation`
+
+    const sendCode = await sendEmail(
+      result.value.name,
+      result.value.email,
+      activationUrl
+    )
 
     if (sendCode.error) {
       return res.status(500).json({
@@ -62,15 +71,21 @@ exports.Signup = async (req, res) => {
       })
     }
 
-    result.value.emailToken = code
-    result.value.emailTokenExpires = new Date(expiry)
+    // result.value.emailToken = code
+    // result.value.emailTokenExpires = new Date(expiry)
 
     const newUser = new User(result.value)
     await newUser.save()
-    return res.status(200).json({
-      success: true,
-      message: 'Registration Success',
-    })
+    return res
+      .cookie('signup_token', code, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'development',
+      })
+      .status(200)
+      .json({
+        success: true,
+        message: 'Registration Success, check your email.',
+      }) //cookie is set at this point
   } catch (error) {
     console.error('signup-error', error)
     return res.status(500).json({
@@ -204,6 +219,105 @@ exports.Activate = async (req, res) => {
       message: error.message,
     })
   }
+}
+
+exports.Activation = async (req, res) => {
+  console.log('Activation req.cookies', req.cookies.signup_token)
+  // no cookies in req object: cookies: [Object: null prototype] {}
+  // WHYYYYYY
+  const options = {
+    expiresIn: '1h',
+  }
+
+  const token = req.cookies.signup_token
+  const result = jwt.verify(token, process.env.JWT_SECRET, options)
+  console.log('jwt.verify: ', result)
+
+  if (!token || !result) {
+    return res.json({
+      error: true,
+      status: 400,
+      message: 'Please make a valid request',
+    })
+  }
+
+  const user = await User.findOne({
+    email: result,
+    //   userId: result.id,
+  })
+
+  if (!user) {
+    return res.status(400).json({
+      error: true,
+      message: 'Invalid details',
+    })
+  }
+
+  if (user.active)
+    return res.send({
+      error: true,
+      message: 'Account already activated',
+      status: 400,
+    })
+
+  user.active = true
+  user.role = 'user'
+  await user.save()
+  console.log('user: ', user)
+  /*   return res.send({
+    error: true,
+    message: 'Who dis',
+    status: 400,
+  }) */
+  return res.json({
+    error: false,
+    status: 200,
+    message: 'Another Different message',
+  })
+  //status(200).redirect('http://localhost:8080/login')
+  /*  try {
+    if (!token) {
+      return res.json({
+        error: true,
+        status: 400,
+        message: 'Please make a valid request',
+      })
+    }
+
+    const user = await User.findOne({
+      email: result.email,
+      userId: result.id,
+    })
+
+    if (!user) {
+      return res.status(400).json({
+        error: true,
+        message: 'Invalid details',
+      })
+    }
+
+    if (user.active)
+      return res.send({
+        error: true,
+        message: 'Account already activated',
+        status: 400,
+      })
+
+    // user.emailToken = ''
+    //  user.emailTokenExpires = null
+    user.active = true
+    user.role = 'user'
+    await user.save()
+
+    return res.status(200).redirect('http://localhost:3000/login')
+
+  } catch (error) {
+    console.error('activation-error', error)
+    return res.status(500).json({
+      error: true,
+      message: error.message,
+    })
+  } */
 }
 
 exports.Logout = async (req, res) => {

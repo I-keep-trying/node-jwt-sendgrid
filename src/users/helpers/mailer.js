@@ -1,8 +1,11 @@
 require('dotenv').config()
 const nodemailer = require('nodemailer')
 
-async function sendEmail(email, code) {
+async function sendEmail(name, email, link) {
   try {
+    // The body of the email for recipients
+    const body_html = `Thank you ${name}, please verify your email: ${link}`
+
     const smtpEndpoint = 'smtp.sendgrid.net'
     const port = 465
     const senderAddress = `ANDREA <dre.crego@gmail.com>`
@@ -10,14 +13,6 @@ async function sendEmail(email, code) {
     const smtpUsername = 'apikey'
     const smtpPassword = process.env.SG_APIKEY
     const subject = 'Verify your email'
-
-    // The body of the email for recipients
-    const body_html = `<!DOCTYPE> 
-    <html>
-      <body>
-        <p>Your authentication code is : </p> <b>${code}</b>
-      </body>
-    </html>`
 
     // Create the SMTP transport.
     let transporter = nodemailer.createTransport({
@@ -35,6 +30,7 @@ async function sendEmail(email, code) {
       from: senderAddress,
       to: toAddress,
       subject: subject,
+      text: `Thank you ${name}, please verify your email: ${link}`,
       html: body_html,
     }
 

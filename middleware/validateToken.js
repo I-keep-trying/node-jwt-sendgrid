@@ -2,9 +2,13 @@ const jwt = require('jsonwebtoken')
 require('dotenv').config()
 
 const User = require('../src/users/user.model')
-
 async function validateToken(req, res, next) {
+  console.log('validateToken.js')
+
   const authorizationHeader = req.headers.authorization
+const authCookies = req.cookies.signup_token
+  console.log('req.headers',req.headers)
+  console.log('req.cookies',req.cookies.signup_token.token)
   let result
 
   if (!authorizationHeader)
@@ -24,7 +28,7 @@ async function validateToken(req, res, next) {
     if (!user) {
       result = {
         error: true,
-        message: `Authorization error`,
+        message: `Authorization error from validateToken.js`,
       }
       return res.status(403).json(result)
     }

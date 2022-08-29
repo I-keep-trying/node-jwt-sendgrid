@@ -8,7 +8,11 @@ const { authorization } = require('../src/users/helpers/auth')
 //Define endpoints
 router.post('/signup', cleanBody, AuthController.Signup)
 router.post('/login', cleanBody, AuthController.Login)
-router.patch('/activate', cleanBody, AuthController.Activate)
+router.patch('/activate', cleanBody, AuthController.Activate) //for emailing the code
+//router.get('/activation/:email/:code',AuthController.Activation) // for emailing a link
+router.get('/activation', AuthController.Activation)
+router.get('/activation4', AuthController.Activation)
+
 router.get('/logout', AuthController.Logout)
 router.patch('/forgot', cleanBody, AuthController.ForgotPassword)
 router.patch('/role', cleanBody, AuthController.UpdateUser)
