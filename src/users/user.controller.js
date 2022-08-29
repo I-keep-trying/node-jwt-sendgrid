@@ -56,8 +56,9 @@ exports.Signup = async (req, res) => {
 
     const code = await jwt.sign(result.value.email, process.env.JWT_SECRET)
     console.log('jwt: ', code)
-    const activationUrl = `http://localhost:8080/users/activation`
-
+    // const activationUrl = `http://localhost:8080/users/activation`
+    const activationUrl =
+      'https://react-node-login-jwt.herokuapp.com/users/activation'
     const sendCode = await sendEmail(
       result.value.name,
       result.value.email,
@@ -269,12 +270,10 @@ exports.Activation = async (req, res) => {
     message: 'Who dis',
     status: 400,
   }) */
-  return res.json({
-    error: false,
-    status: 200,
-    message: 'Another Different message',
-  })
-  //status(200).redirect('http://localhost:8080/login')
+
+  return res
+    .status(200)
+    .redirect('https://react-node-login-jwt.herokuapp.com/login')
   /*  try {
     if (!token) {
       return res.json({
